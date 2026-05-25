@@ -1,6 +1,6 @@
 {
   "appId": "com.moisturemeter.rs232",
-  "appName": "Moisture Capture",
+  "appName": "CDBL Moisture Capture",
   "webDir": "www",
   "server": {
     "androidScheme": "https"
