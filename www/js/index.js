@@ -7,8 +7,6 @@ let state = {
   serialBuffer: "",
   isSendingToSAP: false,
   sapEndpoint: "",
-  sapUser: "",
-  sapPass: "",
   sapMaterial: "CD01",
   operatorName: "OP-1002"
 };
@@ -20,10 +18,10 @@ let elements = {};
 document.addEventListener("DOMContentLoaded", () => {
   cacheDOMElements();
   loadSavedSettings();
+  loadTheme();
   setupEventListeners();
   updateUI();
   startSimulatorClock();
-  
   logToConsole("Application initialized. Ready for MC-7825G Serial Link.");
 });
 
@@ -50,12 +48,15 @@ function cacheDOMElements() {
     toggleConfigBtn: document.getElementById("toggle-config-btn"),
     sapConfigFields: document.getElementById("sap-config-fields"),
     sapEndpoint: document.getElementById("sap-endpoint"),
-    sapUser: document.getElementById("sap-user"),
-    sapPass: document.getElementById("sap-pass"),
+    jsonPreviewBox: document.getElementById("json-preview-box"),
     sapBtn: document.getElementById("sap-btn"),
     clearConsoleBtn: document.getElementById("clear-console-btn"),
     copyConsoleBtn: document.getElementById("copy-console-btn"),
     consoleOutput: document.getElementById("console-output"),
+    // Theme toggle nodes
+    themeToggleBtn: document.getElementById("theme-toggle-btn"),
+    themeSunIcon: document.getElementById("theme-sun-icon"),
+    themeMoonIcon: document.getElementById("theme-moon-icon"),
     // Simulator nodes
     deviceContainer: document.getElementById("device-container"),
     toggleSimView: document.getElementById("toggle-sim-view"),
@@ -80,16 +81,40 @@ function startSimulatorClock() {
   setInterval(updateTime, 30000);
 }
 
+// Load Theme from LocalStorage
+function loadTheme() {
+  const savedTheme = localStorage.getItem("theme");
+  if (savedTheme === "light") {
+    document.body.classList.add("light-theme");
+    updateThemeIcons(true);
+  } else {
+    document.body.classList.remove("light-theme");
+    updateThemeIcons(false);
+  }
+}
+
+// Toggle light/dark theme
+function toggleTheme() {
+  const isLight = document.body.classList.toggle("light-theme");
+  localStorage.setItem("theme", isLight ? "light" : "dark");
+  updateThemeIcons(isLight);
+  logToConsole(`Theme switched to ${isLight ? "Light Mode" : "Dark Mode"}.`);
+}
+
+function updateThemeIcons(isLight) {
+  if (isLight) {
+    elements.themeSunIcon.classList.remove("hidden");
+    elements.themeMoonIcon.classList.add("hidden");
+  } else {
+    elements.themeSunIcon.classList.add("hidden");
+    elements.themeMoonIcon.classList.remove("hidden");
+  }
+}
+
 // Load configurations from LocalStorage
 function loadSavedSettings() {
   if (localStorage.getItem("sapEndpoint")) {
     elements.sapEndpoint.value = localStorage.getItem("sapEndpoint");
-  }
-  if (localStorage.getItem("sapUser")) {
-    elements.sapUser.value = localStorage.getItem("sapUser");
-  }
-  if (localStorage.getItem("sapPass")) {
-    elements.sapPass.value = localStorage.getItem("sapPass");
   }
   if (localStorage.getItem("operatorName")) {
     elements.operatorInput.value = localStorage.getItem("operatorName");
@@ -97,21 +122,22 @@ function loadSavedSettings() {
   if (localStorage.getItem("sapMaterial")) {
     elements.sapMaterial.value = localStorage.getItem("sapMaterial");
   }
+  state.sapEndpoint = elements.sapEndpoint.value;
+  state.operatorName = elements.operatorInput.value;
+  state.sapMaterial = elements.sapMaterial.value;
 }
 
 // Save configuration settings
 function saveSettings() {
   localStorage.setItem("sapEndpoint", elements.sapEndpoint.value);
-  localStorage.setItem("sapUser", elements.sapUser.value);
-  localStorage.setItem("sapPass", elements.sapPass.value);
   localStorage.setItem("operatorName", elements.operatorInput.value);
   localStorage.setItem("sapMaterial", elements.sapMaterial.value);
   
   state.sapEndpoint = elements.sapEndpoint.value;
-  state.sapUser = elements.sapUser.value;
-  state.sapPass = elements.sapPass.value;
   state.operatorName = elements.operatorInput.value;
   state.sapMaterial = elements.sapMaterial.value;
+  
+  updateJSONPreview();
 }
 
 // Setup Event Listeners
@@ -127,6 +153,9 @@ function setupEventListeners() {
   elements.toggleConfigBtn.addEventListener("click", () => {
     elements.sapConfigFields.classList.toggle("hidden");
   });
+
+  // Theme toggle click
+  elements.themeToggleBtn.addEventListener("click", toggleTheme);
 
   // Simulator view layout toggler
   if (elements.toggleSimView) {
@@ -156,11 +185,10 @@ function setupEventListeners() {
 
   // Track inputs to save configs
   const configInputs = [
-    elements.sapEndpoint, elements.sapUser, elements.sapPass, 
-    elements.operatorInput, elements.sapMaterial
+    elements.sapEndpoint, elements.operatorInput, elements.sapMaterial
   ];
   configInputs.forEach(input => {
-    input.addEventListener("change", saveSettings);
+    input.addEventListener("input", saveSettings);
   });
 }
 
@@ -209,7 +237,7 @@ function connectDevice() {
   if (typeof window.serial === 'undefined') {
     logToConsole("⚠️ serial plugin not detected. Running in Web/Mock mode.");
     setConnectedState(true);
-    logToConsole("Ready. Click 'Simulate Input' to send mock serial bytes.");
+    logToConsole("Ready. Click 'Simulate Serial Input' above to send mock bytes.");
     return;
   }
 
@@ -313,13 +341,11 @@ function processSerialLine(line) {
   logToConsole(`Line Parsed: "${line}"`);
   
   // Look for any moisture float value (e.g. "14.2%" or "CD01: 15.6")
-  // Extract numbers like 14.2
   const regex = /(\d+\.\d+)/;
   const match = line.match(regex);
   
   if (match) {
     const val = parseFloat(match[1]);
-    // MC7825G typical moisture range: 6% to 30%+
     if (val >= 5 && val <= 40) {
       logToConsole(`✅ Valid Moisture Level Extracted: ${val}%`);
       addReading(val);
@@ -386,6 +412,29 @@ function calculateStats() {
   }
   
   return { count, average, min, max, sd };
+}
+
+// Generate the JSON payload dynamically
+function getJSONPayload(stats) {
+  return {
+    sapMaterialCode: state.sapMaterial,
+    readings: state.readings,
+    averageMoisture: parseFloat(stats.average.toFixed(2)),
+    minMoisture: parseFloat(stats.min.toFixed(2)),
+    maxMoisture: parseFloat(stats.max.toFixed(2)),
+    standardDeviation: parseFloat(stats.sd.toFixed(3)),
+    timestamp: new Date().toISOString(),
+    operatorName: state.operatorName || "OP-1002"
+  };
+}
+
+// Update JSON Preview Box
+function updateJSONPreview() {
+  const stats = calculateStats();
+  const payload = getJSONPayload(stats);
+  if (elements.jsonPreviewBox) {
+    elements.jsonPreviewBox.textContent = JSON.stringify(payload, null, 2);
+  }
 }
 
 // Update DOM elements based on state
@@ -474,6 +523,8 @@ function updateUI() {
     elements.sapBtn.setAttribute("disabled", "true");
   }
 
+  // Sync the JSON preview panel
+  updateJSONPreview();
 }
 
 // Simulate Serial Transmission
@@ -490,10 +541,7 @@ function triggerSimulation() {
     `Moisture = ${randomMoisture}\r\n`
   ];
   
-  // Select a format randomly to test parsing resilience
   const mockString = dataFormats[Math.floor(Math.random() * dataFormats.length)];
-  
-  // Convert mock string to ArrayBuffer to emulate real Cordova Serial port bytes
   const encoder = new TextEncoder("utf-8");
   const bytes = encoder.encode(mockString);
   
@@ -518,34 +566,14 @@ function sendToSAP() {
   elements.sapStatusIndicator.querySelector(".status-label").textContent = "SAP: Transmitting...";
   logToConsole(`📤 Sending payload to SAP at: ${elements.sapEndpoint.value}...`);
   
-  // Construct SAP JSON Payload
-  const payload = {
-    sapMaterialCode: state.sapMaterial,
-    readings: state.readings,
-    averageMoisture: parseFloat(stats.average.toFixed(2)),
-    minMoisture: parseFloat(stats.min.toFixed(2)),
-    maxMoisture: parseFloat(stats.max.toFixed(2)),
-    standardDeviation: parseFloat(stats.sd.toFixed(3)),
-    timestamp: new Date().toISOString(),
-    operatorName: state.operatorName || "Default Operator"
-  };
-  
+  const payload = getJSONPayload(stats);
   logToConsole(`Payload: ${JSON.stringify(payload, null, 2)}`);
-  
-  // Prepare headers
-  const headers = {
-    "Content-Type": "application/json"
-  };
-  
-  // Setup Basic auth if credentials provided
-  if (elements.sapUser.value && elements.sapPass.value && elements.sapPass.value !== "••••••••") {
-    const credentials = btoa(`${elements.sapUser.value}:${elements.sapPass.value}`);
-    headers["Authorization"] = `Basic ${credentials}`;
-  }
   
   fetch(elements.sapEndpoint.value, {
     method: "POST",
-    headers: headers,
+    headers: {
+      "Content-Type": "application/json"
+    },
     body: JSON.stringify(payload)
   })
   .then(response => {
@@ -564,7 +592,6 @@ function sendToSAP() {
     logToConsole(`⚠️ Connection Warning: SAP REST gateway error: ${error.message}`);
     logToConsole("ℹ️ Simulating Local Dispatch success (Offline Buffer mode)...");
     
-    // Offline / Mock success simulation if SAP server not reachable (intranet issue)
     setTimeout(() => {
       elements.sapStatusIndicator.className = "status-chip status-synced";
       elements.sapStatusIndicator.querySelector(".status-label").textContent = "SAP: Local Synced";
@@ -583,7 +610,6 @@ function logToConsole(message) {
   const timestamp = new Date().toLocaleTimeString();
   const formattedMsg = `\n[${timestamp}] ${message}`;
   elements.consoleOutput.textContent += formattedMsg;
-  // Auto Scroll
   elements.consoleBody.scrollTop = elements.consoleBody.scrollHeight;
 }
 

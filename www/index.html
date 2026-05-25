@@ -46,6 +46,7 @@
           <div class="brand">
             <div class="logo-container">
               <img src="metayb_logo.jpg" alt="MetaYB Logo" class="brand-logo">
+              <img src="cdb_logo.png" alt="CDB Group Logo" class="brand-logo">
             </div>
             <div class="brand-text">
               <h1>MoistureCapture <span class="badge">PRO</span></h1>
@@ -53,9 +54,15 @@
             </div>
           </div>
           <div class="header-status">
-            <div id="usb-status-indicator" class="status-chip status-disconnected">
-              <span class="pulse-dot"></span>
-              <span class="status-label">USB: Offline</span>
+            <div class="status-row">
+              <button id="theme-toggle-btn" class="theme-toggle-btn" title="Toggle Light/Dark Mode">
+                <svg id="theme-sun-icon" class="hidden" viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,2A1,1 0 0,1 13,3V5A1,1 0 0,1 11,5V3A1,1 0 0,1 12,2M12,19A1,1 0 0,1 13,20V22A1,1 0 0,1 11,22V20A1,1 0 0,1 12,19M2,12A1,1 0 0,1 3,11H5A1,1 0 0,1 5,13H3A1,1 0 0,1 2,12M19,12A1,1 0 0,1 20,11H22A1,1 0 0,1 22,13H20A1,1 0 0,1 19,12M6.27,5.63A1,1 0 0,1 7.69,5.63L9.1,7.05A1,1 0 0,1 7.69,8.46L6.27,7.05A1,1 0 0,1 6.27,5.63M14.88,14.24A1,1 0 0,1 16.3,14.24L17.71,15.66A1,1 0 0,1 16.3,17.07L14.88,15.66A1,1 0 0,1 14.88,14.24M16.3,6.27A1,1 0 0,1 17.71,7.69L16.3,9.1A1,1 0 0,1 14.88,7.69L16.3,6.27M7.69,14.88A1,1 0 0,1 9.1,16.3L7.69,17.71A1,1 0 0,1 6.27,16.3L7.69,14.88Z"/></svg>
+                <svg id="theme-moon-icon" viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M12,3c.132,0,.263,0,.393,0a7.5,7.5,0,0,0,7.92,12.446A9,9,0,1,1,12,3Z"/></svg>
+              </button>
+              <div id="usb-status-indicator" class="status-chip status-disconnected">
+                <span class="pulse-dot"></span>
+                <span class="status-label">USB: Offline</span>
+              </div>
             </div>
             <div id="sap-status-indicator" class="status-chip status-idle">
               <span class="pulse-dot"></span>
@@ -251,15 +258,15 @@
                   <label for="sap-endpoint">REST Endpoint URL</label>
                   <input type="url" id="sap-endpoint" value="https://sap-gateway.example.com/sap/opu/odata/sap/ZMOISTURE_SRV/MoistureReadings" placeholder="SAP REST / OData URL">
                 </div>
-                <div class="form-grid">
-                  <div class="form-group">
-                    <label for="sap-user">Username</label>
-                    <input type="text" id="sap-user" value="sap_user" placeholder="SAP RFC user">
-                  </div>
-                  <div class="form-group">
-                    <label for="sap-pass">Password</label>
-                    <input type="password" id="sap-pass" value="••••••••" placeholder="Password">
-                  </div>
+                <div class="form-group">
+                  <label>JSON Payload Format</label>
+                  <pre id="json-preview-box" class="json-preview-box">{
+  "sapMaterialCode": "CD01",
+  "readings": [null, null, null, null, null, null],
+  "averageMoisture": 0.0,
+  "timestamp": "2026-05-25T12:09:46.000Z",
+  "operatorName": "OP-1002"
+}</pre>
                 </div>
               </div>
 
