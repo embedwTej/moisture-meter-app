@@ -79,7 +79,7 @@
         </div>
         <div class="brand-text">
           <h1>CDBL Moisture Capture</h1>
-          <p>Laptop Serial Test Link</p>
+          <p>Laptop Link Test Utility</p>
         </div>
       </div>
       <button id="theme-toggle-btn" class="theme-toggle-btn" title="Toggle Light/Dark Mode">
@@ -91,24 +91,46 @@
     <!-- Main Workspace -->
     <div class="laptop-sender-grid">
       
-      <!-- Panel 1: Web Serial Port Connection -->
+      <!-- Panel 1: Outbound Link Connection -->
       <section class="card glass-card">
         <div class="card-header">
-          <h2>1. Laptop Serial Port</h2>
-          <span class="card-subtitle">Open COM interface for outbound link</span>
+          <h2>1. Outbound Link</h2>
+          <span class="card-subtitle">Choose interface mode to phone APK</span>
         </div>
         <div class="card-body">
           <div class="form-group">
-            <label for="baudrate-select">Baud Rate (bps)</label>
+            <label for="connection-mode">Connection Mode</label>
             <div class="select-wrapper">
-              <select id="baudrate-select">
-                <option value="9600" selected>9600 (Recommended)</option>
-                <option value="4800">4800</option>
-                <option value="2400">2400</option>
-                <option value="19200">19200</option>
+              <select id="connection-mode">
+                <option value="serial" selected>Web Serial Port (COM / OTG)</option>
+                <option value="websocket">WebSocket Bridge (USB Cable / Wi-Fi)</option>
               </select>
             </div>
           </div>
+
+          <!-- Serial Configuration -->
+          <div id="serial-config-fields">
+            <div class="form-group">
+              <label for="baudrate-select">Baud Rate (bps)</label>
+              <div class="select-wrapper">
+                <select id="baudrate-select">
+                  <option value="9600" selected>9600 (Recommended)</option>
+                  <option value="4800">4800</option>
+                  <option value="2400">2400</option>
+                  <option value="19200">19200</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- WebSocket Configuration -->
+          <div id="websocket-config-fields" class="hidden">
+            <div class="form-group">
+              <label for="laptop-ws-url">WebSocket Relay URL</label>
+              <input type="text" id="laptop-ws-url" value="ws://localhost:8000" placeholder="ws://localhost:8000">
+            </div>
+          </div>
+
           <div class="control-row" style="margin-top: 4px; margin-bottom: 4px;">
             <span class="toggle-label">Status:</span>
             <div id="port-status" class="port-status-indicator status-disconnected">
@@ -148,7 +170,7 @@
       <section class="card glass-card wide-panel">
         <div class="card-header">
           <h2>3. Moisture Data Simulator</h2>
-          <span class="card-subtitle">Transmit values over the TX line</span>
+          <span class="card-subtitle">Transmit values over the active link</span>
         </div>
         <div class="card-body">
           <div class="form-grid" style="grid-template-columns: 1fr; gap: 14px;">
@@ -187,7 +209,7 @@
 
             <div class="action-buttons" style="margin-top: 6px;">
               <button id="send-data-btn" class="btn btn-success btn-glow btn-block" disabled>
-                Send Moisture via Serial
+                Send Moisture via Link
               </button>
             </div>
 
@@ -198,7 +220,7 @@
               <h3 style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">Transmission Log Monitor</h3>
               <button id="clear-log-btn" class="text-link" style="font-size: 10px;">Clear Console</button>
             </div>
-            <div id="log-console" class="local-console">>_ Simulator ready. Connect your port to begin.</div>
+            <div id="log-console" class="local-console">>_ Simulator ready. Connect your link to begin.</div>
           </div>
 
         </div>
@@ -218,12 +240,18 @@
     // App State
     let serialPort = null;
     let writer = null;
+    let wsClient = null;
+    let isWsConnected = false;
     let autoLoopTimer = null;
     let themeSetting = localStorage.getItem("theme") || "dark";
 
     // DOM Caching
     const dom = {
+      connectionMode: document.getElementById("connection-mode"),
+      serialConfigFields: document.getElementById("serial-config-fields"),
+      websocketConfigFields: document.getElementById("websocket-config-fields"),
       baudrateSelect: document.getElementById("baudrate-select"),
+      laptopWsUrl: document.getElementById("laptop-ws-url"),
       connectBtn: document.getElementById("connect-btn"),
       portStatus: document.getElementById("port-status"),
       portStatusText: document.getElementById("port-status-text"),
@@ -245,6 +273,9 @@
     // Load saved settings
     if (localStorage.getItem("testWebhookUrl")) {
       dom.webhookUrl.value = localStorage.getItem("testWebhookUrl");
+    }
+    if (localStorage.getItem("laptopWsUrl")) {
+      dom.laptopWsUrl.value = localStorage.getItem("laptopWsUrl");
     }
 
     // Logger helper
@@ -282,13 +313,70 @@
       log(`Theme switched to ${themeSetting} mode.`);
     });
 
+    // Handle connection mode toggle
+    dom.connectionMode.addEventListener("change", () => {
+      // Disconnect anything active
+      disconnectAll();
+      
+      const mode = dom.connectionMode.value;
+      if (mode === "serial") {
+        dom.serialConfigFields.classList.remove("hidden");
+        dom.websocketConfigFields.classList.add("hidden");
+        dom.connectBtn.textContent = "Select & Connect Port";
+      } else {
+        dom.serialConfigFields.classList.add("hidden");
+        dom.websocketConfigFields.classList.remove("hidden");
+        dom.connectBtn.textContent = "Connect WebSocket";
+      }
+      log(`Switched to ${mode === 'serial' ? 'Web Serial Port' : 'WebSocket Network'} mode.`);
+    });
+
     // Slider listener
     dom.moistureSlider.addEventListener("input", () => {
       dom.moistureVal.textContent = parseFloat(dom.moistureSlider.value).toFixed(1) + "%";
     });
 
+    // Disconnect All Connections
+    async function disconnectAll() {
+      stopLoop();
+      dom.autoLoopToggle.checked = false;
+
+      // Close Serial
+      if (serialPort) {
+        try {
+          if (writer) {
+            writer.releaseLock();
+            writer = null;
+          }
+          await serialPort.close();
+        } catch (e) {}
+        serialPort = null;
+      }
+
+      // Close WS
+      if (wsClient) {
+        try {
+          wsClient.close();
+        } catch (e) {}
+        wsClient = null;
+        isWsConnected = false;
+      }
+
+      setDisconnectedState();
+    }
+
+    // Toggle Connection Action
+    async function handleConnectionToggle() {
+      const mode = dom.connectionMode.value;
+      if (mode === "serial") {
+        await toggleSerial();
+      } else {
+        toggleWebSocket();
+      }
+    }
+
     // Web Serial Connection Logic
-    async function connectSerial() {
+    async function toggleSerial() {
       if (!("serial" in navigator)) {
         alert("Web Serial API is not supported in this browser. Please use Google Chrome or MS Edge.");
         log("Web Serial API not supported.", "error");
@@ -296,21 +384,8 @@
       }
 
       if (serialPort) {
-        // Disconnect
         log("Closing serial port...");
-        stopLoop();
-        dom.autoLoopToggle.checked = false;
-        try {
-          if (writer) {
-            writer.releaseLock();
-            writer = null;
-          }
-          await serialPort.close();
-          serialPort = null;
-        } catch (e) {
-          log("Error closing port: " + e.message, "warning");
-        }
-        setDisconnectedState();
+        await disconnectAll();
         return;
       }
 
@@ -328,14 +403,54 @@
         log("Serial port opened successfully! Ready to transmit data.", "success");
       } catch (err) {
         log("Connection failed: " + err.message, "error");
-        serialPort = null;
-        writer = null;
-        setDisconnectedState();
+        await disconnectAll();
+      }
+    }
+
+    // WebSocket Connection Logic
+    function toggleWebSocket() {
+      if (wsClient) {
+        log("Disconnecting WebSocket...");
+        disconnectAll();
+        return;
+      }
+
+      const url = dom.laptopWsUrl.value.trim();
+      if (!url) {
+        alert("Please enter a valid WebSocket relay URL (e.g. ws://localhost:8000)");
+        return;
+      }
+
+      localStorage.setItem("laptopWsUrl", url);
+      log(`Connecting to WebSocket relay at ${url}...`);
+
+      try {
+        wsClient = new WebSocket(url);
+        
+        wsClient.onopen = () => {
+          isWsConnected = true;
+          setConnectedState();
+          log(`WebSocket linked to relay server successfully! Ready to transmit data.`, "success");
+        };
+
+        wsClient.onclose = () => {
+          log("WebSocket connection closed.");
+          disconnectAll();
+        };
+
+        wsClient.onerror = (err) => {
+          log(`WebSocket error: Connection refused or failed. Make sure your server.js is running.`, "error");
+          disconnectAll();
+        };
+      } catch (err) {
+        log(`WebSocket initialization error: ${err.message}`, "error");
+        disconnectAll();
       }
     }
 
     function setConnectedState() {
-      dom.connectBtn.textContent = "Close Serial Connection";
+      const mode = dom.connectionMode.value;
+      dom.connectBtn.textContent = mode === "serial" ? "Close Serial Connection" : "Disconnect WebSocket";
       dom.connectBtn.classList.remove("btn-primary");
       dom.connectBtn.classList.add("btn-secondary");
       dom.portStatus.className = "port-status-indicator status-connected";
@@ -344,7 +459,8 @@
     }
 
     function setDisconnectedState() {
-      dom.connectBtn.textContent = "Select & Connect Port";
+      const mode = dom.connectionMode.value;
+      dom.connectBtn.textContent = mode === "serial" ? "Select & Connect Port" : "Connect WebSocket";
       dom.connectBtn.classList.remove("btn-secondary");
       dom.connectBtn.classList.add("btn-primary");
       dom.portStatus.className = "port-status-indicator status-disconnected";
@@ -352,13 +468,9 @@
       dom.sendDataBtn.setAttribute("disabled", "true");
     }
 
-    // Sending Serial Data
+    // Sending Simulated Data
     async function sendMoistureData() {
-      if (!writer) {
-        log("Cannot send, port not writable.", "error");
-        return;
-      }
-
+      const mode = dom.connectionMode.value;
       const val = parseFloat(dom.moistureSlider.value).toFixed(1);
       const format = dom.formatSelect.value;
       let textToSend = "";
@@ -371,18 +483,32 @@
         textToSend = `Moisture = ${val}\r\n`;
       }
 
-      try {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(textToSend);
-        await writer.write(data);
-        log(`Sent text: "${textToSend.replace(/[\r\n]+/g, " ")}"`, "tx");
-      } catch (err) {
-        log("Transmit failed: " + err.message, "error");
-        stopLoop();
-        dom.autoLoopToggle.checked = false;
-        setDisconnectedState();
-        serialPort = null;
-        writer = null;
+      if (mode === "serial") {
+        if (!writer) {
+          log("Cannot send, serial port not connected.", "error");
+          return;
+        }
+        try {
+          const encoder = new TextEncoder();
+          const data = encoder.encode(textToSend);
+          await writer.write(data);
+          log(`[Serial] Sent: "${textToSend.replace(/[\r\n]+/g, " ")}"`, "tx");
+        } catch (err) {
+          log("Serial transmission failed: " + err.message, "error");
+          disconnectAll();
+        }
+      } else {
+        if (!wsClient || wsClient.readyState !== WebSocket.OPEN) {
+          log("Cannot send, WebSocket not connected.", "error");
+          return;
+        }
+        try {
+          wsClient.send(textToSend);
+          log(`[WebSocket] Relayed: "${textToSend.replace(/[\r\n]+/g, " ")}"`, "tx");
+        } catch (err) {
+          log("WebSocket relay failed: " + err.message, "error");
+          disconnectAll();
+        }
       }
     }
 
@@ -394,7 +520,6 @@
       autoLoopTimer = setInterval(() => {
         // Slightly randomize moisture slider value around current selection
         const base = parseFloat(dom.moistureSlider.value);
-        // Add random variation between -0.3% and +0.3%
         const variation = (Math.random() * 0.6) - 0.3;
         let nextVal = base + variation;
         if (nextVal < 5) nextVal = 5;
@@ -416,9 +541,15 @@
     }
 
     dom.autoLoopToggle.addEventListener("change", () => {
+      const mode = dom.connectionMode.value;
       if (dom.autoLoopToggle.checked) {
-        if (!writer) {
+        if (mode === "serial" && !writer) {
           alert("Connect to a serial port first before enabling auto-transmission.");
+          dom.autoLoopToggle.checked = false;
+          return;
+        }
+        if (mode === "websocket" && (!wsClient || wsClient.readyState !== WebSocket.OPEN)) {
+          alert("Connect to the WebSocket relay server first before enabling auto-transmission.");
           dom.autoLoopToggle.checked = false;
           return;
         }
@@ -473,7 +604,7 @@
     }
 
     // Action listeners
-    dom.connectBtn.addEventListener("click", connectSerial);
+    dom.connectBtn.addEventListener("click", handleConnectionToggle);
     dom.sendDataBtn.addEventListener("click", sendMoistureData);
     dom.webhookTestBtn.addEventListener("click", sendWebhookPing);
     dom.clearLogBtn.addEventListener("click", () => {

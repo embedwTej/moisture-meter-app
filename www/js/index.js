@@ -12,7 +12,11 @@ let state = {
   // Auto/Manual options
   autoCalculate: true,
   autoSendSAP: false,
-  lastSentAverage: null
+  lastSentAverage: null,
+  // WebSocket Test Mode options
+  wsClient: null,
+  isWsConnected: false,
+  wsUrl: ""
 };
 
 // DOM elements
@@ -81,7 +85,10 @@ function cacheDOMElements() {
     // Simulator nodes
     deviceContainer: document.getElementById("device-container"),
     toggleSimView: document.getElementById("toggle-sim-view"),
-    simClock: document.getElementById("sim-clock")
+    simClock: document.getElementById("sim-clock"),
+    // WebSocket nodes
+    websocketUrlInput: document.getElementById("websocket-url-input"),
+    connectWsBtn: document.getElementById("connect-ws-btn")
   };
 }
 
@@ -143,6 +150,9 @@ function loadSavedSettings() {
   if (localStorage.getItem("sapMaterial")) {
     elements.sapMaterial.value = localStorage.getItem("sapMaterial");
   }
+  if (localStorage.getItem("wsUrl")) {
+    elements.websocketUrlInput.value = localStorage.getItem("wsUrl");
+  }
   
   if (localStorage.getItem("autoCalculate") !== null) {
     state.autoCalculate = localStorage.getItem("autoCalculate") === "true";
@@ -156,6 +166,7 @@ function loadSavedSettings() {
   state.sapEndpoint = elements.sapEndpoint.value;
   state.operatorName = elements.operatorInput.value;
   state.sapMaterial = elements.sapMaterial.value;
+  state.wsUrl = elements.websocketUrlInput.value;
 }
 
 // Save configuration settings
@@ -163,10 +174,12 @@ function saveSettings() {
   localStorage.setItem("sapEndpoint", elements.sapEndpoint.value);
   localStorage.setItem("operatorName", elements.operatorInput.value);
   localStorage.setItem("sapMaterial", elements.sapMaterial.value);
+  localStorage.setItem("wsUrl", elements.websocketUrlInput.value);
   
   state.sapEndpoint = elements.sapEndpoint.value;
   state.operatorName = elements.operatorInput.value;
   state.sapMaterial = elements.sapMaterial.value;
+  state.wsUrl = elements.websocketUrlInput.value;
   
   updateJSONPreview();
 }
@@ -174,6 +187,7 @@ function saveSettings() {
 // Setup Event Listeners
 function setupEventListeners() {
   elements.connectBtn.addEventListener("click", toggleConnection);
+  elements.connectWsBtn.addEventListener("click", toggleWsConnection);
   elements.simBtn.addEventListener("click", triggerSimulation);
   elements.resetBtn.addEventListener("click", clearReadings);
   elements.sapBtn.addEventListener("click", sendToSAP);
@@ -245,7 +259,7 @@ function setupEventListeners() {
 
   // Track inputs to save configs
   const configInputs = [
-    elements.sapEndpoint, elements.operatorInput, elements.sapMaterial
+    elements.sapEndpoint, elements.operatorInput, elements.sapMaterial, elements.websocketUrlInput
   ];
   configInputs.forEach(input => {
     input.addEventListener("input", saveSettings);
@@ -277,6 +291,72 @@ function promptManualReading(index) {
       alert("Invalid reading. Please enter a number between 0 and 100.");
     }
   }
+}
+
+// Toggle WebSocket Connection
+function toggleWsConnection() {
+  if (state.isWsConnected) {
+    disconnectWebSocket();
+  } else {
+    connectWebSocket();
+  }
+}
+
+function connectWebSocket() {
+  saveSettings();
+  const url = state.wsUrl.trim();
+  if (!url) {
+    alert("Please enter a valid WebSocket URL (e.g. ws://192.168.42.129:8000)");
+    return;
+  }
+
+  logToConsole(`Connecting WebSocket to ${url}...`);
+  elements.connectWsBtn.textContent = "Connecting...";
+  
+  try {
+    state.wsClient = new WebSocket(url);
+    
+    state.wsClient.onopen = () => {
+      state.isWsConnected = true;
+      logToConsole(`🔌 WebSocket Connected successfully to ${url}!`);
+      elements.connectWsBtn.textContent = "Disconnect WebSocket";
+      elements.connectWsBtn.classList.remove("btn-secondary");
+      elements.connectWsBtn.classList.add("btn-danger-outline");
+    };
+    
+    state.wsClient.onmessage = (event) => {
+      logToConsole(`RX (WS): ${event.data.trim()}`);
+      processSerialLine(event.data);
+    };
+    
+    state.wsClient.onclose = () => {
+      logToConsole("🔌 WebSocket Connection closed.");
+      cleanupWebSocketUI();
+    };
+    
+    state.wsClient.onerror = (err) => {
+      logToConsole(`❌ WebSocket Connection Error`);
+      cleanupWebSocketUI();
+    };
+  } catch (e) {
+    logToConsole(`❌ WebSocket init error: ${e.message}`);
+    cleanupWebSocketUI();
+  }
+}
+
+function disconnectWebSocket() {
+  if (state.wsClient) {
+    logToConsole("Disconnecting WebSocket...");
+    state.wsClient.close();
+  }
+}
+
+function cleanupWebSocketUI() {
+  state.isWsConnected = false;
+  state.wsClient = null;
+  elements.connectWsBtn.textContent = "Connect WebSocket";
+  elements.connectWsBtn.classList.remove("btn-danger-outline");
+  elements.connectWsBtn.classList.add("btn-secondary");
 }
 
 // Handle Connection logic

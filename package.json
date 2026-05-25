@@ -4,6 +4,7 @@
   "description": "Moisture Meter RS232 Mobile Application",
   "main": "www/js/index.js",
   "scripts": {
+    "start": "node server.js",
     "cap:sync": "cap sync",
     "cap:copy": "cap copy",
     "cap:open-android": "cap open android"
@@ -11,7 +12,8 @@
   "dependencies": {
     "@capacitor/android": "^6.0.0",
     "@capacitor/core": "^6.0.0",
-    "cordova-plugin-serial": "^0.0.3"
+    "cordova-plugin-serial": "^0.0.3",
+    "ws": "^8.16.0"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",

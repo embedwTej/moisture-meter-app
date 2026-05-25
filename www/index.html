@@ -69,7 +69,7 @@
           <section class="card glass-card connection-panel">
             <div class="card-header">
               <h2>1. Device Connection</h2>
-              <span class="card-subtitle">Establish serial interface link</span>
+              <span class="card-subtitle">Establish serial or network link</span>
             </div>
             <div class="card-body">
               <div class="form-group">
@@ -85,7 +85,19 @@
               </div>
               <div class="action-buttons">
                 <button id="connect-btn" class="btn btn-primary btn-glow btn-block">
-                  Connect Meter
+                  Connect Meter (Serial)
+                </button>
+              </div>
+              
+              <div style="margin: 8px 0; border-top: 1px solid rgba(255, 255, 255, 0.08);"></div>
+              
+              <div class="form-group">
+                <label for="websocket-url-input">WebSocket URL (USB / Wi-Fi Test)</label>
+                <input type="text" id="websocket-url-input" placeholder="e.g. ws://192.168.42.129:8000" value="">
+              </div>
+              <div class="action-buttons">
+                <button id="connect-ws-btn" class="btn btn-secondary btn-block">
+                  Connect WebSocket
                 </button>
               </div>
             </div>
