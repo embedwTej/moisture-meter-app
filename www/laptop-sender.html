@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CDBL Laptop Serial Sender</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/index.css">
+  <style>
+    /* Specific adjustments for laptop-sender */
+    .laptop-sender-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    @media (min-width: 640px) {
+      .laptop-sender-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .wide-panel {
+        grid-column: span 2;
+      }
+    }
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .slider-val-box {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 800;
+      font-family: var(--font-heading);
+      min-width: 60px;
+      text-align: center;
+      color: var(--primary);
+    }
+    .local-console {
+      background: #05070c;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      padding: 10px;
+      max-height: 150px;
+      overflow-y: auto;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px;
+      color: #a7f3d0;
+      min-height: 100px;
+      margin-top: 10px;
+    }
+    body.light-theme .local-console {
+      background: #f9fafb;
+      border-color: rgba(0, 0, 0, 0.06);
+      color: #1e293b;
+    }
+    .port-status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="glass-bg"></div>
+
+  <div class="app-container" style="max-width: 800px; margin: 0 auto; padding: 20px 16px;">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo-container">
+          <img src="cdb_logo.png" alt="CDB Group Logo" class="brand-logo">
+        </div>
+        <div class="brand-text">
+          <h1>CDBL Moisture Capture</h1>
+          <p>Laptop Serial Test Link</p>
+        </div>
+      </div>
+      <button id="theme-toggle-btn" class="theme-toggle-btn" title="Toggle Light/Dark Mode">
+        <svg id="theme-sun-icon" class="hidden" viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,2A1,1 0 0,1 13,3V5A1,1 0 0,1 11,5V3A1,1 0 0,1 12,2M12,19A1,1 0 0,1 13,20V22A1,1 0 0,1 11,22V20A1,1 0 0,1 12,19M2,12A1,1 0 0,1 3,11H5A1,1 0 0,1 5,13H3A1,1 0 0,1 2,12M19,12A1,1 0 0,1 20,11H22A1,1 0 0,1 22,13H20A1,1 0 0,1 19,12M6.27,5.63A1,1 0 0,1 7.69,5.63L9.1,7.05A1,1 0 0,1 7.69,8.46L6.27,7.05A1,1 0 0,1 6.27,5.63M14.88,14.24A1,1 0 0,1 16.3,14.24L17.71,15.66A1,1 0 0,1 16.3,17.07L14.88,15.66A1,1 0 0,1 14.88,14.24M16.3,6.27A1,1 0 0,1 17.71,7.69L16.3,9.1A1,1 0 0,1 14.88,7.69L16.3,6.27M7.69,14.88A1,1 0 0,1 9.1,16.3L7.69,17.71A1,1 0 0,1 6.27,16.3L7.69,14.88Z"/></svg>
+        <svg id="theme-moon-icon" viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M12,3c.132,0,.263,0,.393,0a7.5,7.5,0,0,0,7.92,12.446A9,9,0,1,1,12,3Z"/></svg>
+      </button>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="laptop-sender-grid">
+      
+      <!-- Panel 1: Web Serial Port Connection -->
+      <section class="card glass-card">
+        <div class="card-header">
+          <h2>1. Laptop Serial Port</h2>
+          <span class="card-subtitle">Open COM interface for outbound link</span>
+        </div>
+        <div class="card-body">
+          <div class="form-group">
+            <label for="baudrate-select">Baud Rate (bps)</label>
+            <div class="select-wrapper">
+              <select id="baudrate-select">
+                <option value="9600" selected>9600 (Recommended)</option>
+                <option value="4800">4800</option>
+                <option value="2400">2400</option>
+                <option value="19200">19200</option>
+              </select>
+            </div>
+          </div>
+          <div class="control-row" style="margin-top: 4px; margin-bottom: 4px;">
+            <span class="toggle-label">Status:</span>
+            <div id="port-status" class="port-status-indicator status-disconnected">
+              <span class="pulse-dot"></span>
+              <span id="port-status-text">Disconnected</span>
+            </div>
+          </div>
+          <button id="connect-btn" class="btn btn-primary btn-glow btn-block">
+            Select & Connect Port
+          </button>
+        </div>
+      </section>
+
+      <!-- Panel 2: Webhook Tester -->
+      <section class="card glass-card">
+        <div class="card-header">
+          <h2>2. Webhook Testing</h2>
+          <span class="card-subtitle">Verify network transmission endpoints</span>
+        </div>
+        <div class="card-body">
+          <div class="form-group">
+            <label for="webhook-url">Webhook / REST URL</label>
+            <input type="url" id="webhook-url" placeholder="e.g. https://webhook.site/..." value="">
+          </div>
+          <div class="form-group" style="margin-top: 4px;">
+            <button id="webhook-test-btn" class="btn btn-secondary btn-block">
+              Send Webhook Test Ping
+            </button>
+          </div>
+          <div style="font-size: 9px; color: var(--text-muted); text-align: center; margin-top: 2px;">
+            Verifies that your network environment can dispatch JSON payloads.
+          </div>
+        </div>
+      </section>
+
+      <!-- Panel 3: Moisture Sender -->
+      <section class="card glass-card wide-panel">
+        <div class="card-header">
+          <h2>3. Moisture Data Simulator</h2>
+          <span class="card-subtitle">Transmit values over the TX line</span>
+        </div>
+        <div class="card-body">
+          <div class="form-grid" style="grid-template-columns: 1fr; gap: 14px;">
+            
+            <div class="form-group">
+              <label>Select Serial Data Format</label>
+              <div class="select-wrapper">
+                <select id="format-select">
+                  <option value="format1" selected>Format 1: [Value]% (e.g. "14.2%")</option>
+                  <option value="format2">Format 2: [Material Code]: [Value] (e.g. "CD01: 15.6")</option>
+                  <option value="format3">Format 3: Moisture = [Value] (e.g. "Moisture = 13.8")</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Moisture Percentage (%)</label>
+              <div class="slider-row">
+                <input type="range" id="moisture-slider" min="5.0" max="40.0" step="0.1" value="13.5" style="flex: 1; accent-color: var(--primary);">
+                <div id="moisture-val" class="slider-val-box">13.5%</div>
+              </div>
+            </div>
+
+            <div class="control-row" style="padding: 4px 0;">
+              <label class="toggle-switch">
+                <input type="checkbox" id="auto-loop-toggle">
+                <span class="slider"></span>
+                <span class="toggle-label">Auto-Transmit Loop</span>
+              </label>
+              <div class="form-group" style="flex-direction: row; align-items: center; gap: 8px;">
+                <label for="loop-interval" style="margin: 0; font-size: 11px;">Interval:</label>
+                <input type="number" id="loop-interval" value="3" min="1" max="60" style="width: 50px; padding: 4px; border-radius: 4px; text-align: center;">
+                <span style="font-size: 11px; color: var(--text-muted);">sec</span>
+              </div>
+            </div>
+
+            <div class="action-buttons" style="margin-top: 6px;">
+              <button id="send-data-btn" class="btn btn-success btn-glow btn-block" disabled>
+                Send Moisture via Serial
+              </button>
+            </div>
+
+          </div>
+
+          <div style="margin-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 10px;">
+            <div class="control-row">
+              <h3 style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">Transmission Log Monitor</h3>
+              <button id="clear-log-btn" class="text-link" style="font-size: 10px;">Clear Console</button>
+            </div>
+            <div id="log-console" class="local-console">>_ Simulator ready. Connect your port to begin.</div>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="app-footer" style="margin-top: 20px;">
+      <div class="footer-copyright">
+        <p>Copyright by Metayb Pvt Ltd</p>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // App State
+    let serialPort = null;
+    let writer = null;
+    let autoLoopTimer = null;
+    let themeSetting = localStorage.getItem("theme") || "dark";
+
+    // DOM Caching
+    const dom = {
+      baudrateSelect: document.getElementById("baudrate-select"),
+      connectBtn: document.getElementById("connect-btn"),
+      portStatus: document.getElementById("port-status"),
+      portStatusText: document.getElementById("port-status-text"),
+      webhookUrl: document.getElementById("webhook-url"),
+      webhookTestBtn: document.getElementById("webhook-test-btn"),
+      formatSelect: document.getElementById("format-select"),
+      moistureSlider: document.getElementById("moisture-slider"),
+      moistureVal: document.getElementById("moisture-val"),
+      autoLoopToggle: document.getElementById("auto-loop-toggle"),
+      loopInterval: document.getElementById("loop-interval"),
+      sendDataBtn: document.getElementById("send-data-btn"),
+      clearLogBtn: document.getElementById("clear-log-btn"),
+      logConsole: document.getElementById("log-console"),
+      themeToggleBtn: document.getElementById("theme-toggle-btn"),
+      themeSunIcon: document.getElementById("theme-sun-icon"),
+      themeMoonIcon: document.getElementById("theme-moon-icon")
+    };
+
+    // Load saved settings
+    if (localStorage.getItem("testWebhookUrl")) {
+      dom.webhookUrl.value = localStorage.getItem("testWebhookUrl");
+    }
+
+    // Logger helper
+    function log(message, type = "info") {
+      const timestamp = new Date().toLocaleTimeString();
+      let icon = ">_";
+      if (type === "success") icon = "✅";
+      if (type === "warning") icon = "⚠️";
+      if (type === "error") icon = "❌";
+      if (type === "tx") icon = "📤 TX:";
+      
+      const entry = `\n[${timestamp}] ${icon} ${message}`;
+      dom.logConsole.textContent += entry;
+      dom.logConsole.scrollTop = dom.logConsole.scrollHeight;
+      console.log(`[${type.toUpperCase()}] ${message}`);
+    }
+
+    // Theme logic
+    function applyTheme() {
+      if (themeSetting === "light") {
+        document.body.classList.add("light-theme");
+        dom.themeSunIcon.classList.remove("hidden");
+        dom.themeMoonIcon.classList.add("hidden");
+      } else {
+        document.body.classList.remove("light-theme");
+        dom.themeSunIcon.classList.add("hidden");
+        dom.themeMoonIcon.classList.remove("hidden");
+      }
+    }
+    
+    dom.themeToggleBtn.addEventListener("click", () => {
+      themeSetting = themeSetting === "dark" ? "light" : "dark";
+      localStorage.setItem("theme", themeSetting);
+      applyTheme();
+      log(`Theme switched to ${themeSetting} mode.`);
+    });
+
+    // Slider listener
+    dom.moistureSlider.addEventListener("input", () => {
+      dom.moistureVal.textContent = parseFloat(dom.moistureSlider.value).toFixed(1) + "%";
+    });
+
+    // Web Serial Connection Logic
+    async function connectSerial() {
+      if (!("serial" in navigator)) {
+        alert("Web Serial API is not supported in this browser. Please use Google Chrome or MS Edge.");
+        log("Web Serial API not supported.", "error");
+        return;
+      }
+
+      if (serialPort) {
+        // Disconnect
+        log("Closing serial port...");
+        stopLoop();
+        dom.autoLoopToggle.checked = false;
+        try {
+          if (writer) {
+            writer.releaseLock();
+            writer = null;
+          }
+          await serialPort.close();
+          serialPort = null;
+        } catch (e) {
+          log("Error closing port: " + e.message, "warning");
+        }
+        setDisconnectedState();
+        return;
+      }
+
+      try {
+        log("Requesting USB serial port interface...");
+        serialPort = await navigator.serial.requestPort();
+        
+        const baud = parseInt(dom.baudrateSelect.value);
+        log(`Opening serial port at ${baud} bps...`);
+        await serialPort.open({ baudRate: baud });
+        
+        writer = serialPort.writable.getWriter();
+        
+        setConnectedState();
+        log("Serial port opened successfully! Ready to transmit data.", "success");
+      } catch (err) {
+        log("Connection failed: " + err.message, "error");
+        serialPort = null;
+        writer = null;
+        setDisconnectedState();
+      }
+    }
+
+    function setConnectedState() {
+      dom.connectBtn.textContent = "Close Serial Connection";
+      dom.connectBtn.classList.remove("btn-primary");
+      dom.connectBtn.classList.add("btn-secondary");
+      dom.portStatus.className = "port-status-indicator status-connected";
+      dom.portStatusText.textContent = "Connected";
+      dom.sendDataBtn.removeAttribute("disabled");
+    }
+
+    function setDisconnectedState() {
+      dom.connectBtn.textContent = "Select & Connect Port";
+      dom.connectBtn.classList.remove("btn-secondary");
+      dom.connectBtn.classList.add("btn-primary");
+      dom.portStatus.className = "port-status-indicator status-disconnected";
+      dom.portStatusText.textContent = "Disconnected";
+      dom.sendDataBtn.setAttribute("disabled", "true");
+    }
+
+    // Sending Serial Data
+    async function sendMoistureData() {
+      if (!writer) {
+        log("Cannot send, port not writable.", "error");
+        return;
+      }
+
+      const val = parseFloat(dom.moistureSlider.value).toFixed(1);
+      const format = dom.formatSelect.value;
+      let textToSend = "";
+
+      if (format === "format1") {
+        textToSend = `${val}%\r\n`;
+      } else if (format === "format2") {
+        textToSend = `CD01: ${val}\r\n`;
+      } else if (format === "format3") {
+        textToSend = `Moisture = ${val}\r\n`;
+      }
+
+      try {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(textToSend);
+        await writer.write(data);
+        log(`Sent text: "${textToSend.replace(/[\r\n]+/g, " ")}"`, "tx");
+      } catch (err) {
+        log("Transmit failed: " + err.message, "error");
+        stopLoop();
+        dom.autoLoopToggle.checked = false;
+        setDisconnectedState();
+        serialPort = null;
+        writer = null;
+      }
+    }
+
+    // Auto-Transmit Loop
+    function startLoop() {
+      const intervalSec = parseInt(dom.loopInterval.value) || 3;
+      log(`Starting auto-transmit loop (every ${intervalSec} seconds)`, "info");
+      
+      autoLoopTimer = setInterval(() => {
+        // Slightly randomize moisture slider value around current selection
+        const base = parseFloat(dom.moistureSlider.value);
+        // Add random variation between -0.3% and +0.3%
+        const variation = (Math.random() * 0.6) - 0.3;
+        let nextVal = base + variation;
+        if (nextVal < 5) nextVal = 5;
+        if (nextVal > 40) nextVal = 40;
+        
+        dom.moistureSlider.value = nextVal.toFixed(1);
+        dom.moistureVal.textContent = nextVal.toFixed(1) + "%";
+        
+        sendMoistureData();
+      }, intervalSec * 1000);
+    }
+
+    function stopLoop() {
+      if (autoLoopTimer) {
+        log("Stopped auto-transmit loop.");
+        clearInterval(autoLoopTimer);
+        autoLoopTimer = null;
+      }
+    }
+
+    dom.autoLoopToggle.addEventListener("change", () => {
+      if (dom.autoLoopToggle.checked) {
+        if (!writer) {
+          alert("Connect to a serial port first before enabling auto-transmission.");
+          dom.autoLoopToggle.checked = false;
+          return;
+        }
+        startLoop();
+      } else {
+        stopLoop();
+      }
+    });
+
+    // Webhook Test Pings
+    async function sendWebhookPing() {
+      const url = dom.webhookUrl.value.trim();
+      if (!url) {
+        alert("Please enter a valid webhook URL.");
+        return;
+      }
+
+      localStorage.setItem("testWebhookUrl", url);
+      dom.webhookTestBtn.setAttribute("disabled", "true");
+      dom.webhookTestBtn.textContent = "Sending Ping...";
+      log(`Dispatching webhook test ping to: ${url}...`, "info");
+
+      const testPayload = {
+        testId: "TEST-" + Math.floor(Math.random() * 10000),
+        sender: "CDBL Laptop Serial Link Utility",
+        timestamp: new Date().toISOString(),
+        message: "Perfect communication test from laptop"
+      };
+
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(testPayload)
+        });
+
+        if (response.ok) {
+          log("Webhook Test Success! Received OK status.", "success");
+          alert("Success! Webhook endpoint reached and returned status OK.");
+        } else {
+          throw new Error(`Server returned HTTP ${response.status}`);
+        }
+      } catch (err) {
+        log(`Webhook Failed: ${err.message}`, "error");
+        alert(`Failed to reach Webhook:\n${err.message}\n\nMake sure the webhook site allows incoming CORS requests.`);
+      } finally {
+        dom.webhookTestBtn.removeAttribute("disabled");
+        dom.webhookTestBtn.textContent = "Send Webhook Test Ping";
+      }
+    }
+
+    // Action listeners
+    dom.connectBtn.addEventListener("click", connectSerial);
+    dom.sendDataBtn.addEventListener("click", sendMoistureData);
+    dom.webhookTestBtn.addEventListener("click", sendWebhookPing);
+    dom.clearLogBtn.addEventListener("click", () => {
+      dom.logConsole.textContent = ">_ Console cleared.";
+    });
+
+    // Initialize Theme on startup
+    applyTheme();
+  </script>
+</body>
+</html>
