@@ -8,6 +8,45 @@ const PUBLIC_DIR = path.join(__dirname, 'www');
 
 // Simple static file handler for HTTP Server
 function serveStaticFile(req, res) {
+  // Handle CORS Preflight OPTIONS requests
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'OPTIONS, POST, GET',
+      'Access-Control-Allow-Headers': 'Content-Type'
+    });
+    res.end();
+    return;
+  }
+
+  // Handle Mock SAP POST payload dispatch
+  if (req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+    req.on('end', () => {
+      console.log(`\n====================================================`);
+      console.log(`[HTTP POST] Incoming SAP Dispatch Payload:`);
+      try {
+        const payload = JSON.parse(body);
+        console.log(JSON.stringify(payload, null, 2));
+      } catch (e) {
+        console.log(body);
+      }
+      console.log(`====================================================\n`);
+      
+      res.writeHead(200, { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'OPTIONS, POST, GET',
+        'Access-Control-Allow-Headers': 'Content-Type'
+      });
+      res.end(JSON.stringify({ status: 'success', message: 'Data received by local mock SAP gateway' }));
+    });
+    return;
+  }
+
   let filePath = path.join(PUBLIC_DIR, req.url === '/' ? 'index.html' : req.url.split('?')[0]);
   
   // Extension check
