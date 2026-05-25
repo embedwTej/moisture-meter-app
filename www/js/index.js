@@ -8,7 +8,11 @@ let state = {
   isSendingToSAP: false,
   sapEndpoint: "",
   sapMaterial: "CD01",
-  operatorName: "OP-1002"
+  operatorName: "OP-1002",
+  // Auto/Manual options
+  autoCalculate: true,
+  autoSendSAP: false,
+  lastSentAverage: null
 };
 
 // DOM elements
@@ -22,6 +26,18 @@ document.addEventListener("DOMContentLoaded", () => {
   setupEventListeners();
   updateUI();
   startSimulatorClock();
+  
+  // Hide simulation button and developer console if running inside the compiled APK native container
+  const isNative = window.cordova || window.Capacitor || window.location.protocol === 'file:';
+  if (isNative) {
+    if (elements.simBtn) {
+      elements.simBtn.style.display = "none";
+    }
+    if (elements.consoleSection) {
+      elements.consoleSection.style.display = "none";
+    }
+  }
+  
   logToConsole("Application initialized. Ready for MC-7825G Serial Link.");
 });
 
@@ -53,6 +69,11 @@ function cacheDOMElements() {
     clearConsoleBtn: document.getElementById("clear-console-btn"),
     copyConsoleBtn: document.getElementById("copy-console-btn"),
     consoleOutput: document.getElementById("console-output"),
+    consoleSection: document.getElementById("console-section"),
+    // Auto/Manual Calculation and Send toggles
+    calcAutoToggle: document.getElementById("calc-auto-toggle"),
+    calcManualBtn: document.getElementById("calc-manual-btn"),
+    sapAutoToggle: document.getElementById("sap-auto-toggle"),
     // Theme toggle nodes
     themeToggleBtn: document.getElementById("theme-toggle-btn"),
     themeSunIcon: document.getElementById("theme-sun-icon"),
@@ -122,6 +143,16 @@ function loadSavedSettings() {
   if (localStorage.getItem("sapMaterial")) {
     elements.sapMaterial.value = localStorage.getItem("sapMaterial");
   }
+  
+  if (localStorage.getItem("autoCalculate") !== null) {
+    state.autoCalculate = localStorage.getItem("autoCalculate") === "true";
+    elements.calcAutoToggle.checked = state.autoCalculate;
+  }
+  if (localStorage.getItem("autoSendSAP") !== null) {
+    state.autoSendSAP = localStorage.getItem("autoSendSAP") === "true";
+    elements.sapAutoToggle.checked = state.autoSendSAP;
+  }
+  
   state.sapEndpoint = elements.sapEndpoint.value;
   state.operatorName = elements.operatorInput.value;
   state.sapMaterial = elements.sapMaterial.value;
@@ -156,6 +187,31 @@ function setupEventListeners() {
 
   // Theme toggle click
   elements.themeToggleBtn.addEventListener("click", toggleTheme);
+
+  // Auto Calculate Toggle listener
+  elements.calcAutoToggle.addEventListener("change", () => {
+    state.autoCalculate = elements.calcAutoToggle.checked;
+    localStorage.setItem("autoCalculate", state.autoCalculate);
+    if (state.autoCalculate) {
+      elements.calcManualBtn.classList.add("hidden");
+      updateUI();
+    } else {
+      elements.calcManualBtn.classList.remove("hidden");
+      // Reset calculations visually until user manually triggers
+      clearCalculationsUI();
+    }
+  });
+
+  // Manual Calculate Button click
+  elements.calcManualBtn.addEventListener("click", () => {
+    updateUI(true); // force calculation
+  });
+
+  // Auto Send to SAP Toggle listener
+  elements.sapAutoToggle.addEventListener("change", () => {
+    state.autoSendSAP = elements.sapAutoToggle.checked;
+    localStorage.setItem("autoSendSAP", state.autoSendSAP);
+  });
 
   // Simulator view layout toggler
   if (elements.toggleSimView) {
@@ -362,6 +418,9 @@ function addReading(value, slotIndex = null) {
   state.readings[targetIndex] = value;
   logToConsole(`Recorded ${value}% in Slot ${targetIndex + 1}`);
   
+  // Reset lastSentAverage on new inputs to enable auto-send trigger again
+  state.lastSentAverage = null;
+  
   // Advance focus to next empty slot if not manually targeted
   if (slotIndex === null) {
     let nextIndex = (targetIndex + 1) % 6;
@@ -379,12 +438,15 @@ function addReading(value, slotIndex = null) {
   } else {
     updateUI();
   }
+  
+  updateUI();
 }
 
 // Clear all recorded readings
 function clearReadings() {
   state.readings = [null, null, null, null, null, null];
   state.activeSlotIndex = 0;
+  state.lastSentAverage = null;
   logToConsole("🗑️ Cleared all sample readings.");
   updateUI();
   setFocusSlot(0);
@@ -414,6 +476,19 @@ function calculateStats() {
   return { count, average, min, max, sd };
 }
 
+// Clear Calculations UI (for Manual Calculate Mode)
+function clearCalculationsUI() {
+  elements.avgValDisplay.innerHTML = `—<span class="unit">%</span>`;
+  elements.moistureEval.className = "gauge-desc";
+  elements.moistureEval.textContent = "No Data";
+  elements.gaugeFillArc.style.strokeDashoffset = 314;
+  elements.gaugeFillArc.style.stroke = "var(--primary)";
+  
+  elements.statMin.textContent = "—";
+  elements.statMax.textContent = "—";
+  elements.statSd.textContent = "—";
+}
+
 // Generate the JSON payload dynamically
 function getJSONPayload(stats) {
   return {
@@ -438,7 +513,7 @@ function updateJSONPreview() {
 }
 
 // Update DOM elements based on state
-function updateUI() {
+function updateUI(forceCalculate = false) {
   const stats = calculateStats();
   
   // Update slot elements
@@ -468,7 +543,7 @@ function updateUI() {
   elements.progressFill.style.width = `${(stats.count / 6) * 100}%`;
   
   // Update calculations
-  if (stats.count > 0) {
+  if (stats.count > 0 && (state.autoCalculate || forceCalculate)) {
     elements.avgValDisplay.innerHTML = `${stats.average.toFixed(1)}<span class="unit">%</span>`;
     elements.statMin.textContent = `${stats.min.toFixed(1)}%`;
     elements.statMax.textContent = `${stats.max.toFixed(1)}%`;
@@ -504,16 +579,21 @@ function updateUI() {
     elements.moistureEval.className = evalClass;
     elements.moistureEval.textContent = evalText;
     elements.gaugeFillArc.style.stroke = strokeColor;
-  } else {
-    elements.avgValDisplay.innerHTML = `0.0<span class="unit">%</span>`;
-    elements.moistureEval.className = "gauge-desc";
-    elements.moistureEval.textContent = "No Data";
-    elements.gaugeFillArc.style.strokeDashoffset = 314;
-    elements.gaugeFillArc.style.stroke = "var(--primary)";
     
-    elements.statMin.textContent = "—";
-    elements.statMax.textContent = "—";
-    elements.statSd.textContent = "—";
+    // Auto-send hook if 6 readings completed
+    if (stats.count === 6 && state.autoSendSAP && state.lastSentAverage !== stats.average) {
+      state.lastSentAverage = stats.average;
+      logToConsole("✨ Auto Send mode active: Triggering SAP Dispatch...");
+      sendToSAP();
+    }
+  } else if (!state.autoCalculate && !forceCalculate) {
+    // Keep or clear display if autoCalculate is disabled and manual calculate has not run
+    clearCalculationsUI();
+    if (stats.count > 0) {
+      elements.moistureEval.textContent = "Recalc Required";
+    }
+  } else {
+    clearCalculationsUI();
   }
   
   // Enable SAP upload button only when all 6 readings are verified
@@ -613,10 +693,12 @@ function logToConsole(message) {
   elements.consoleBody.scrollTop = elements.consoleBody.scrollHeight;
 }
 
+// Clear logs
 function clearConsole() {
   elements.consoleOutput.textContent = ">_ Terminal cleared.";
 }
 
+// Copy logs
 function copyConsole() {
   navigator.clipboard.writeText(elements.consoleOutput.textContent)
     .then(() => {

@@ -48,7 +48,7 @@
               <img src="cdb_logo.png" alt="CDB Group Logo" class="brand-logo">
             </div>
             <div class="brand-text">
-              <h1>MoistureCapture <span class="badge">PRO</span></h1>
+              <h1>CDB Moisture Pro</h1>
               <p>MC-7825G Serial Link</p>
             </div>
           </div>
@@ -200,6 +200,17 @@
                   <span id="stat-sd" class="stat-val">—</span>
                 </div>
               </div>
+              
+              <div class="control-row">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="calc-auto-toggle" checked>
+                  <span class="slider"></span>
+                  <span class="toggle-label">Auto Calculate</span>
+                </label>
+                <button id="calc-manual-btn" class="btn btn-secondary btn-glow hidden" style="padding: 6px 12px; font-size: 10px; height: 26px;">
+                  Calculate Stats
+                </button>
+              </div>
             </div>
           </section>
 
@@ -257,6 +268,14 @@
                 </div>
               </div>
 
+              <div class="control-row" style="margin-bottom: 8px; margin-top: 4px;">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="sap-auto-toggle">
+                  <span class="slider"></span>
+                  <span class="toggle-label">Auto Send to SAP</span>
+                </label>
+              </div>
+
               <button id="sap-btn" class="btn btn-success btn-block btn-glow" disabled>
                 Send to SAP
               </button>
@@ -266,7 +285,7 @@
         </main>
 
         <!-- Console Section -->
-        <section class="console-section card glass-card">
+        <section id="console-section" class="console-section card glass-card">
           <div class="console-header">
             <div class="console-title">
               <span class="terminal-dots">
