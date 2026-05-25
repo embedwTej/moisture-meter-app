@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Mobile platforms (Generated on-the-fly by Capacitor CLI in the build script)
+android/
+ios/
+
+# IDE / Editor folders
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS files
+.DS_Store
+Thumbs.db

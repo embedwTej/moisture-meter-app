@@ -1,0 +1,8 @@
+{
+  "appId": "com.moisturemeter.rs232",
+  "appName": "Moisture Capture",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}

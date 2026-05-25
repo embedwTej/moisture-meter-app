@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moisture Capture Pro</title>
+  <!-- Google Fonts for premium typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/index.css">
+  <script defer src="js/index.js"></script>
+</head>
+<body>
+  <div class="glass-bg"></div>
+
+  <!-- Simulator Mode Controls (Top Bar on Desktop) -->
+  <div class="simulator-controls">
+    <button id="toggle-sim-view" class="btn btn-secondary">
+      <svg viewBox="0 0 24 24" width="16" height="16" style="margin-right: 4px;"><path fill="currentColor" d="M17,1H7A2,2 0 0,0 5,3V21A2,2 0 0,0 7,23H17A2,2 0 0,0 19,21V3A2,2 0 0,0 17,1M17,19H7V5H17V19Z"/></svg>
+      Toggle Simulator Phone Frame
+    </button>
+  </div>
+
+  <!-- Simulated Mobile Device Frame -->
+  <div id="device-container" class="phone-frame">
+    <!-- Status Bar (simulated) -->
+    <div class="phone-status-bar">
+      <span class="status-time" id="sim-clock">11:35 AM</span>
+      <div class="notch"></div>
+      <div class="status-icons">
+        <span>5G</span>
+        <span style="font-size: 10px;">📶</span>
+        <span>🔋 92%</span>
+      </div>
+    </div>
+    
+    <!-- Phone Screen viewport -->
+    <div class="phone-screen">
+      <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+          <div class="brand">
+            <div class="logo-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20">
+                <path fill="currentColor" d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M12,6A6,6 0 0,0 6,12A6,6 0 0,0 12,18A6,6 0 0,0 18,12A6,6 0 0,0 12,6M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8Z"/>
+              </svg>
+            </div>
+            <div class="brand-text">
+              <h1>MoistureCapture <span class="badge">PRO</span></h1>
+              <p>MC-7825G Serial Link</p>
+            </div>
+          </div>
+          <div class="header-status">
+            <div id="usb-status-indicator" class="status-chip status-disconnected">
+              <span class="pulse-dot"></span>
+              <span class="status-label">USB: Offline</span>
+            </div>
+            <div id="sap-status-indicator" class="status-chip status-idle">
+              <span class="pulse-dot"></span>
+              <span class="status-label">SAP: Offline</span>
+            </div>
+          </div>
+        </header>
+
+        <!-- Main Grid Dashboard -->
+        <main class="dashboard-grid">
+          
+          <!-- Panel 1: Connection & Settings -->
+          <section class="card glass-card connection-panel">
+            <div class="card-header">
+              <h2>1. Device Connection</h2>
+              <span class="card-subtitle">Establish serial interface link</span>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label for="baudrate-select">Baud Rate (bps)</label>
+                <div class="select-wrapper">
+                  <select id="baudrate-select">
+                    <option value="9600" selected>9600 (Recommended)</option>
+                    <option value="4800">4800</option>
+                    <option value="2400">2400</option>
+                    <option value="19200">19200</option>
+                  </select>
+                </div>
+              </div>
+              <div class="action-buttons">
+                <button id="connect-btn" class="btn btn-primary btn-glow">
+                  Connect Meter
+                </button>
+                <button id="sim-btn" class="btn btn-secondary">
+                  Simulate Input
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- Panel 2: Readings List (6 samples) -->
+          <section class="card glass-card readings-panel">
+            <div class="card-header">
+              <h2>2. Data Collection</h2>
+              <span class="card-subtitle">Capture 6 moisture samples</span>
+              <div class="progress-info">
+                <span id="progress-text">0 / 6 Readings</span>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="progress-bar-container">
+                <div id="progress-fill" class="progress-bar-fill" style="width: 0%"></div>
+              </div>
+              
+              <div class="readings-grid">
+                <!-- Slot 1 -->
+                <div class="reading-slot pending" data-index="0">
+                  <div class="slot-num">01</div>
+                  <div class="slot-val">—</div>
+                  <div class="slot-status">Pending</div>
+                  <button class="slot-action-btn" title="Manual Capture">
+                    <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M4,4H7L9,2H15L17,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,4M12,7A5,5 0 0,0 7,12A5,5 0 0,0 12,17A5,5 0 0,0 17,12A5,5 0 0,0 12,7M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9Z"/></svg>
+                  </button>
+                </div>
+                <!-- Slot 2 -->
+                <div class="reading-slot pending" data-index="1">
+                  <div class="slot-num">02</div>
+                  <div class="slot-val">—</div>
+                  <div class="slot-status">Pending</div>
+                  <button class="slot-action-btn" title="Manual Capture">
+                    <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M4,4H7L9,2H15L17,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,4M12,7A5,5 0 0,0 7,12A5,5 0 0,0 12,17A5,5 0 0,0 17,12A5,5 0 0,0 12,7M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9Z"/></svg>
+                  </button>
+                </div>
+                <!-- Slot 3 -->
+                <div class="reading-slot pending" data-index="2">
+                  <div class="slot-num">03</div>
+                  <div class="slot-val">—</div>
+                  <div class="slot-status">Pending</div>
+                  <button class="slot-action-btn" title="Manual Capture">
+                    <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M4,4H7L9,2H15L17,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,4M12,7A5,5 0 0,0 7,12A5,5 0 0,0 12,17A5,5 0 0,0 17,12A5,5 0 0,0 12,7M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9Z"/></svg>
+                  </button>
+                </div>
+                <!-- Slot 4 -->
+                <div class="reading-slot pending" data-index="3">
+                  <div class="slot-num">04</div>
+                  <div class="slot-val">—</div>
+                  <div class="slot-status">Pending</div>
+                  <button class="slot-action-btn" title="Manual Capture">
+                    <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M4,4H7L9,2H15L17,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,4M12,7A5,5 0 0,0 7,12A5,5 0 0,0 12,17A5,5 0 0,0 17,12A5,5 0 0,0 12,7M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9Z"/></svg>
+                  </button>
+                </div>
+                <!-- Slot 5 -->
+                <div class="reading-slot pending" data-index="4">
+                  <div class="slot-num">05</div>
+                  <div class="slot-val">—</div>
+                  <div class="slot-status">Pending</div>
+                  <button class="slot-action-btn" title="Manual Capture">
+                    <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M4,4H7L9,2H15L17,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,4M12,7A5,5 0 0,0 7,12A5,5 0 0,0 12,17A5,5 0 0,0 17,12A5,5 0 0,0 12,7M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9Z"/></svg>
+                  </button>
+                </div>
+                <!-- Slot 6 -->
+                <div class="reading-slot pending" data-index="5">
+                  <div class="slot-num">06</div>
+                  <div class="slot-val">—</div>
+                  <div class="slot-status">Pending</div>
+                  <button class="slot-action-btn" title="Manual Capture">
+                    <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M4,4H7L9,2H15L17,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,4M12,7A5,5 0 0,0 7,12A5,5 0 0,0 12,17A5,5 0 0,0 17,12A5,5 0 0,0 12,7M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9Z"/></svg>
+                  </button>
+                </div>
+              </div>
+              
+              <div class="reset-readings-wrapper">
+                <button id="reset-btn" class="btn btn-danger-outline">
+                  Clear All Samples
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- Panel 3: Stats & Dial Gauge -->
+          <section class="card glass-card stats-panel">
+            <div class="card-header">
+              <h2>3. Calculations</h2>
+              <span class="card-subtitle">Aggregated Moisture Analysis</span>
+            </div>
+            <div class="card-body gauge-body">
+              <div class="gauge-wrapper">
+                <svg class="gauge-svg" viewBox="0 0 120 120">
+                  <!-- Gauge Background Track -->
+                  <circle class="gauge-track" cx="60" cy="60" r="50" fill="none" stroke-width="8"></circle>
+                  <!-- Gauge Progress -->
+                  <circle id="gauge-fill-arc" class="gauge-fill" cx="60" cy="60" r="50" fill="none" stroke-width="8" stroke-dasharray="314" stroke-dashoffset="314"></circle>
+                </svg>
+                <div class="gauge-center">
+                  <span id="avg-val-display" class="gauge-val">0.0<span class="unit">%</span></span>
+                  <span id="moisture-eval" class="gauge-desc">No Data</span>
+                </div>
+              </div>
+
+              <div class="stats-grid">
+                <div class="stat-item">
+                  <span class="stat-lbl">Min</span>
+                  <span id="stat-min" class="stat-val">—</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-lbl">Max</span>
+                  <span id="stat-max" class="stat-val">—</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-lbl">Std Dev</span>
+                  <span id="stat-sd" class="stat-val">—</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Panel 4: SAP Integration -->
+          <section class="card glass-card sap-panel">
+            <div class="card-header">
+              <h2>4. SAP Dispatch</h2>
+              <span class="card-subtitle">Upload verified average value</span>
+            </div>
+            <div class="card-body">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="sap-material">Grain / Material Type</label>
+                  <div class="select-wrapper">
+                    <select id="sap-material">
+                      <option value="CD01" selected>CD01: Paddy (Rough Rice)</option>
+                      <option value="CD02">CD02: Wheat</option>
+                      <option value="CD03">CD03: Corn (Maize)</option>
+                      <option value="CD04">CD04: Barley</option>
+                      <option value="CD05">CD05: Oats</option>
+                      <option value="CD06">CD06: Sorghum</option>
+                      <option value="CD07">CD07: Soybean</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div class="form-group">
+                  <label for="operator-input">Operator Name / ID</label>
+                  <input type="text" id="operator-input" value="OP-1002" placeholder="e.g. Operator ID">
+                </div>
+              </div>
+
+              <!-- Configuration Toggle -->
+              <div class="sap-config-toggle">
+                <button id="toggle-config-btn" class="text-link">
+                  <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.47,5.34 14.86,5.08L14.47,2.42C14.43,2.18 14.22,2 13.97,2H9.97C9.72,2 9.51,2.18 9.47,2.42L9.08,5.08C8.47,5.34 7.9,5.66 7.38,6.05L4.89,5.05C4.67,4.96 4.4,5.05 4.27,5.27L2.27,8.73C2.15,8.95 2.2,9.22 2.39,9.37L4.5,11C4.46,11.32 4.44,11.66 4.44,12C4.44,12.33 4.46,12.67 4.5,13L2.39,14.63C2.2,14.78 2.15,15.05 2.27,15.27L4.27,18.73C4.4,18.95 4.67,19.04 4.89,18.95L7.38,17.95C7.9,18.34 8.47,18.66 9.08,18.92L9.47,21.58C9.51,21.82 9.72,22 9.97,22H13.97C14.22,22 14.43,21.82 14.47,21.58L14.86,18.92C15.47,18.66 16.04,18.34 16.56,17.95L19.05,18.95C19.27,19.04 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/></svg>
+                  SAP Gateway Settings
+                </button>
+              </div>
+
+              <div id="sap-config-fields" class="sap-config-fields hidden">
+                <div class="form-group">
+                  <label for="sap-endpoint">REST Endpoint URL</label>
+                  <input type="url" id="sap-endpoint" value="https://sap-gateway.example.com/sap/opu/odata/sap/ZMOISTURE_SRV/MoistureReadings" placeholder="SAP REST / OData URL">
+                </div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="sap-user">Username</label>
+                    <input type="text" id="sap-user" value="sap_user" placeholder="SAP RFC user">
+                  </div>
+                  <div class="form-group">
+                    <label for="sap-pass">Password</label>
+                    <input type="password" id="sap-pass" value="••••••••" placeholder="Password">
+                  </div>
+                </div>
+              </div>
+
+              <button id="sap-btn" class="btn btn-success btn-block btn-glow" disabled>
+                Send to SAP
+              </button>
+            </div>
+          </section>
+
+        </main>
+
+        <!-- Console Section -->
+        <section class="console-section card glass-card">
+          <div class="console-header">
+            <div class="console-title">
+              <span class="terminal-dots">
+                <span class="dot-red"></span>
+                <span class="dot-yellow"></span>
+                <span class="dot-green"></span>
+              </span>
+              <h3>Live Terminal & Logs</h3>
+            </div>
+            <div class="console-actions">
+              <button id="clear-console-btn" class="text-link">Clear</button>
+              <span class="divider">|</span>
+              <button id="copy-console-btn" class="text-link">Copy</button>
+            </div>
+          </div>
+          <div class="console-body">
+            <pre id="console-output" class="console-pre">&gt;_ Application started. Ready for MC-7825G Serial communication.
+&gt;_ Connect your device using an OTG adapter, select the baudrate, and tap 'Connect Meter'.</pre>
+          </div>
+        </section>
+      </div>
+    </div>
+    
+    <!-- Home indicator (simulated) -->
+    <div class="phone-home-indicator"></div>
+  </div>
+</body>
+</html>
