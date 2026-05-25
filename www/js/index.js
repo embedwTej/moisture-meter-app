@@ -23,6 +23,13 @@ document.addEventListener("DOMContentLoaded", () => {
   setupEventListeners();
   updateUI();
   startSimulatorClock();
+  
+  // Hide simulation button if running inside the compiled APK native container
+  const isNative = window.cordova || window.Capacitor || window.location.protocol === 'file:';
+  if (isNative && elements.simBtn) {
+    elements.simBtn.style.display = "none";
+  }
+  
   logToConsole("Application initialized. Ready for MC-7825G Serial Link.");
 });
 
