@@ -24,16 +24,6 @@ document.addEventListener("DOMContentLoaded", () => {
   updateUI();
   startSimulatorClock();
   
-  // Hide simulation button if running inside a mobile browser or native APK
-  const isMobileOrNative = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || 
-                           window.cordova || 
-                           window.Capacitor || 
-                           window.location.protocol === 'file:';
-                           
-  if (isMobileOrNative && elements.simBtn) {
-    elements.simBtn.style.display = "none";
-  }
-  
   logToConsole("Application initialized. Ready for MC-7825G Serial Link.");
 });
 
@@ -484,14 +474,6 @@ function updateUI() {
     elements.sapBtn.setAttribute("disabled", "true");
   }
 
-  // Double check and enforce hiding simulate option in native mobile contexts
-  const isMobileOrNative = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || 
-                           window.cordova || 
-                           window.Capacitor || 
-                           window.location.protocol === 'file:';
-  if (isMobileOrNative && elements.simBtn) {
-    elements.simBtn.style.display = "none";
-  }
 }
 
 // Simulate Serial Transmission
