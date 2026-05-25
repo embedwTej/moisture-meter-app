@@ -178,8 +178,12 @@ function setupEventListeners() {
   elements.resetBtn.addEventListener("click", clearReadings);
   elements.sapBtn.addEventListener("click", sendToSAP);
   
-  elements.clearConsoleBtn.addEventListener("click", clearConsole);
-  elements.copyConsoleBtn.addEventListener("click", copyConsole);
+  if (elements.clearConsoleBtn) {
+    elements.clearConsoleBtn.addEventListener("click", clearConsole);
+  }
+  if (elements.copyConsoleBtn) {
+    elements.copyConsoleBtn.addEventListener("click", copyConsole);
+  }
   
   elements.toggleConfigBtn.addEventListener("click", () => {
     elements.sapConfigFields.classList.toggle("hidden");
@@ -687,24 +691,34 @@ function sendToSAP() {
 
 // Console helper functions
 function logToConsole(message) {
-  const timestamp = new Date().toLocaleTimeString();
-  const formattedMsg = `\n[${timestamp}] ${message}`;
-  elements.consoleOutput.textContent += formattedMsg;
-  elements.consoleBody.scrollTop = elements.consoleBody.scrollHeight;
+  console.log(message);
+  if (elements.consoleOutput) {
+    const timestamp = new Date().toLocaleTimeString();
+    const formattedMsg = `\n[${timestamp}] ${message}`;
+    elements.consoleOutput.textContent += formattedMsg;
+    const consoleBody = document.querySelector(".console-body");
+    if (consoleBody) {
+      consoleBody.scrollTop = consoleBody.scrollHeight;
+    }
+  }
 }
 
 // Clear logs
 function clearConsole() {
-  elements.consoleOutput.textContent = ">_ Terminal cleared.";
+  if (elements.consoleOutput) {
+    elements.consoleOutput.textContent = ">_ Terminal cleared.";
+  }
 }
 
 // Copy logs
 function copyConsole() {
-  navigator.clipboard.writeText(elements.consoleOutput.textContent)
-    .then(() => {
-      alert("Console output copied to clipboard.");
-    })
-    .catch(err => {
-      console.error("Failed to copy console text: ", err);
-    });
+  if (elements.consoleOutput) {
+    navigator.clipboard.writeText(elements.consoleOutput.textContent)
+      .then(() => {
+        alert("Console output copied to clipboard.");
+      })
+      .catch(err => {
+        console.error("Failed to copy console text: ", err);
+      });
+  }
 }
